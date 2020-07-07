@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name" >Smart Home</string>
+    <string name="home">Smart Home</string>
+    <string name="name">Name</string>
+    <string name="uname">user name</string>
+    <string name="pass">Password</string>
+    <string name="login">LOGIN</string>
+    <string name="no_account">Have no account? sign up</string>
+    <string name="light">lights</string>
+    <string name="door">door</string>
+    <string name="fan">fan</string>
+    <string name="curtain">curtain</string>
+    <string name="doorC">DOOR CLOSED</string>
+    <string name="doorO">DOOR OPEN</string>
+    <string name="curtanc">CLOSED</string>
+    <string name="curtainO">CURTAIN OPEN</string>
+    <string name="controls">Controls</string>
+
+</resources>
