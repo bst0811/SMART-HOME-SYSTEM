@@ -35,14 +35,14 @@ void loop(void)
   Serial.print((char)176);//shows degrees character
   Serial.println("F");
 
-  if(c<28){
+  if(c<23){
     analogWrite(fan, HIGH);
-    delay(2000);
+    delay(5000);
     }
   else
   {
     analogWrite(fan, LOW);
     delay(2000);
     }
-  delay(2000);
+  delay(1000);
 }
