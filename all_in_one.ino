@@ -3,9 +3,10 @@
 #include <DallasTemperature.h>
 
 #define DEBUG true
-boolean sent = false;
+static boolean sent = false;
 
 // Data wire is plugged into digital pin 12 on the Arduino
+//int tempPin =12;
 #define ONE_WIRE_BUS 12
 
 // Setup a oneWire instance to communicate with any OneWire device
@@ -16,7 +17,7 @@ DallasTemperature sensors(&oneWire);
 
 int smokeSensorPin = A0;
 int lightSensorPin = A1; 
-int tempPin =8;
+
 //digital pins
 int ledPin = 4;
 int fanPin = 5;
@@ -37,6 +38,8 @@ SoftwareSerial esp8266(2,3); // make RX Arduino line is pin 2, make TX Arduino l
                              // and the RX line from the esp to the Arduino's pin 3
 
    String server=""; //variable for sending data to webpage
+   static int x = 0;
+   int y;
 
 void setup()
 {
@@ -45,7 +48,6 @@ void setup()
   pinMode(lightSensorPin,INPUT);
   pinMode(ledPin,OUTPUT);
   pinMode(smokeSensorPin, INPUT);
-  pinMode(tempPin,INPUT);
   pinMode(relayPin,OUTPUT);
   pinMode(fanPin,OUTPUT);
   analogWrite(fanPin, 0);
@@ -67,17 +69,26 @@ void setup()
  
 void loop()
 {     
-        server = "HTTP/1.1 200 OK\r\nConnection: Closed\r\n\r\n"+Createjson();
+        //server = "HTTP/1.1 200 OK\r\nConnection: Closed\r\n\r\n"+Createjson(x);
         //delay(5000);
+        
     if(esp8266.available()){
           if(sent == false){
-            
-        sendToServer(server);
+           y = Receive();   
+              
+        
         //sent = true;
         }
-       
-        Receive();   
+        //Serial.println(sent);
+        if(y==1){
+          x=1;
+          }
+          server = "HTTP/1.1 200 OK\r\nConnection: Closed\r\n\r\n"+Createjson(x);
+       sendToServer(server);
+        Serial.println(x);
+        
         esp8266.println("AT+CIPCLOSE=0"); // close TCP/UDP connection
+        //delay(5000);
         } 
 
 }
@@ -163,7 +174,7 @@ void sendToServer(String server)//send data to webpage
      
 }  
 
-void Receive(){
+int Receive(){
 
   //receiving data
   
@@ -187,18 +198,22 @@ void Receive(){
      closeCommand+=connectionId; // append connection id
      closeCommand+="\r\n";
      Serial.write(esp8266.read()); 
-          
-    }
+       return 1;   
+    }else{
+      return 0;   
+      }
      
 }
 
 
-String Createjson(){
+String Createjson(int x){
+  if(x!=1){
   //LIGHT
    int ldr = analogRead(lightSensorPin);
    if(ldr<=900){
     //Serial.print("THERE IS DARKNESS HENCE THE LIGHT IS ON");
     digitalWrite(relayPin, HIGH);
+    digitalWrite(ledPin, HIGH); // turn LED ON
     lightStatus = "on";
     //delay(10000);
     //Serial.println();
@@ -207,6 +222,7 @@ String Createjson(){
       //Serial.print("THERE IS LIGHT HENCE THE LIGHT IS OFF");
       lightStatus = "off";
   digitalWrite(relayPin, LOW);
+  digitalWrite(ledPin, LOW); // turn LED OFF
   //delay(8000);
  // Serial.println();
     
@@ -214,6 +230,9 @@ String Createjson(){
   
       }
       //delay(1000);
+      }else{
+        lightStatus = "Light sensor off";
+        }
 
      //SMOKE  todo tone function
   SmokeSensorVal = analogRead(smokeSensorPin);
@@ -234,8 +253,16 @@ String Createjson(){
   // Send the command to get temperatures
  sensors.requestTemperatures(); 
 
+  int c, k=23;
   //print the temperature in Celsius
-  int c = sensors.getTempCByIndex(0);
+  //int c = sensors.getTempCByIndex(0);
+ 
+    c = sensors.getTempCByIndex(0);
+    
+  /*if(c!=-127){
+    k=c;
+    }*/
+    
   /*Serial.print("Temperature: ");
   Serial.print(c);
   Serial.print((char)223);//shows degrees character
@@ -261,7 +288,7 @@ String Createjson(){
     //motion
    val = digitalRead(motionPin);  // read input value
   if (val == HIGH) {            // check if the input is HIGH
-    digitalWrite(ledPin, HIGH);  // turn LED ON
+    //digitalWrite(ledPin, HIGH);  // turn LED ON
     //delay(10000);
     if (pirState == LOW) {
       // we have just turned on
@@ -276,7 +303,7 @@ String Createjson(){
     
   } else {
     
-    digitalWrite(ledPin, LOW); // turn LED OFF
+    //digitalWrite(ledPin, LOW); // turn LED OFF
     if (pirState == HIGH){
       // we have just turned of
       //Serial.println("Motion ended!");
@@ -298,11 +325,14 @@ String Createjson(){
   doorStatus = "closed";
   //delay(2000);
   }
-  
-      temperature = String(c);
+  if(c==-127){
+      temperature = String(k) ;}
+  else{
+      temperature = String(c); 
+        }
 
      server = "{";
-  server += "\"temp\":\""+String(c)+"\"";
+  server += "\"temp\":\""+temperature+"\"";
   server += ",\"smoke\":\""+smokeStatus+"\"";
   server += ",\"light\":\""+lightStatus+"\"";
   server += ",\"door\":\""+doorStatus+"\"";
