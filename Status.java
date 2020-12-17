@@ -102,7 +102,7 @@ public class Status extends AppCompatActivity {
         protected String doInBackground(Void... voids) {
             progress.setVisibility(View.VISIBLE);
             try{
-                url =new URL("http://192.168.4.1/");
+                url =new URL("http://192.168.43.30/");
 
             } catch (MalformedURLException e) {
                 e.printStackTrace();
