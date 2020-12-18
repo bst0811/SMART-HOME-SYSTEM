@@ -21,14 +21,14 @@ int lightSensorPin = A1;
 //digital pins
 int ledPin = 4;
 int fanPin = 5;
-int buzzerPin = 6;
+int buzzerPin = 8;
 int motionPin = 7;               // choose the input pin (for PIR sensor)
 int pirState = LOW;             // we start, assuming no motion detected
 //int temperature;
 int SmokeSensorVal = 0;
 int val = 0;                    // variable for reading the pin status
 int  relayPin =9 ;
-int solenoid = 3;//pin for lock
+int solenoid = 11;//pin for lock
 
 
 String temperature,motionStatus,smokeStatus,lightStatus, lightSensorStatus,fanStatus,doorStatus;
@@ -38,7 +38,7 @@ SoftwareSerial esp8266(2,3); // make RX Arduino line is pin 2, make TX Arduino l
                              // and the RX line from the esp to the Arduino's pin 3
 
    String server=""; //variable for sending data to webpage
-   static int x = 0;
+   static int x = 1;
    int y;
 
 void setup()
@@ -55,12 +55,17 @@ void setup()
   pinMode(solenoid,OUTPUT);
   
   sensors.begin();  // Start up the library for temp sensor
-     
-  sendData("AT+RST\r\n",2000,DEBUG); // reset module
-  sendData("AT+CWMODE=2\r\n",1000,DEBUG); // configure as access point
-  sendData("AT+CIFSR\r\n",1000,DEBUG); // get ip address
-  sendData("AT+CIPMUX=1\r\n",1000,DEBUG); // configure for multiple connections
+
+  sendData("AT\r\n",100,DEBUG);   
+  sendData("AT+RST\r\n",5000,DEBUG); // reset module
+  sendData("AT+CWMODE=3\r\n",1000,DEBUG); // configure as access point
+  sendData("AT+CWJAP=\"TECNO POP 2F\",\"qwertyuiip\"\r\n",7000,DEBUG);
+  //sendData("AT+CWJAP=\"WIMEA-ICT\",\"Wimea@2020-ict\"\r\n",7000,DEBUG);
+  
+  sendData("AT+CIFSR\r\n",3000,DEBUG); // get ip address
+  sendData("AT+CIPMUX=1\r\n",5000,DEBUG); // configure for multiple connections
   sendData("AT+CIPSERVER=1,80\r\n",1000,DEBUG); // turn on server on port 80
+  sendData("AT+CIPSTA=\"192.168.43.30\",\"192.168.43.1\",\"255.255.255.0\"\r\n",3000,DEBUG); // turn on server on port 80
 
   /*Serial.println("Smart Home");
   Serial. println("Design by BSE20-43");
@@ -73,22 +78,24 @@ void loop()
         //delay(5000);
         
     if(esp8266.available()){
-          if(sent == false){
+      server ="HTTP/1.1 200 OK\r\nConnection: Closed\r\n\r\n"+Createjson(x);
+       sendToServer(server);
+        //Serial.println(x);
+        Serial.println(server);
+        
+          //if(sent == false){
            y = Receive();   
               
         
         //sent = true;
-        }
+        //}
         //Serial.println(sent);
         if(y==1){
-          x=1;
+         //x=1;
           }
-          server = "HTTP/1.1 200 OK\r\nConnection: Closed\r\n\r\n"+Createjson(x);
-       sendToServer(server);
-        Serial.println(x);
-        
-        esp8266.println("AT+CIPCLOSE=0"); // close TCP/UDP connection
-        //delay(5000);
+          
+       esp8266.println("AT+CIPCLOSE=0\r\n"); // close TCP/UDP connection
+        delay(1000);
         } 
 
 }
@@ -188,15 +195,16 @@ int Receive(){
           
      esp8266.find("pin="); // advance cursor to "pin="
      
-    // int pinNumber = (esp8266.read()-48)*10; // get first number i.e. if the pin 13 then the 1st number is 1, then multiply to get 10
-     //int pinNumber = (esp8266.read()-48); // get second number, i.e. if the pin number is 13 then the 2nd number is 3, then add to the first number
-    int pinNumber = 4;
+     int pinNumber = (esp8266.read()-48)*1; // get first number i.e. if the pin 13 then the 1st number is 1, then multiply to get 10
+     //pinNumber += (esp8266.read()-48); // get second number, i.e. if the pin number is 13 then the 2nd number is 3, then add to the first number
+    //int pinNumber = 4;
      digitalWrite(pinNumber, !digitalRead(pinNumber)); // toggle pin    
      
      // make close command
-     String closeCommand = "AT+CIPCLOSE="; 
+     /*String closeCommand = "AT+CIPCLOSE="; 
      closeCommand+=connectionId; // append connection id
      closeCommand+="\r\n";
+     sendData(closeCommand,1000,DEBUG);*/
      Serial.write(esp8266.read()); 
        return 1;   
     }else{
@@ -207,26 +215,27 @@ int Receive(){
 
 
 String Createjson(int x){
-  if(x!=1){
+  //Serial.println(x);
+  if(x==1){
   //LIGHT
    int ldr = analogRead(lightSensorPin);
-   if(ldr<=900){
+   if(ldr<950){
     //Serial.print("THERE IS DARKNESS HENCE THE LIGHT IS ON");
     digitalWrite(relayPin, HIGH);
-    digitalWrite(ledPin, HIGH); // turn LED ON
+    //digitalWrite(ledPin, HIGH); // turn LED ON
     lightStatus = "on";
-    //delay(10000);
+    delay(3000);
     //Serial.println();
     //Serial.println(ldr);
     }else{
       //Serial.print("THERE IS LIGHT HENCE THE LIGHT IS OFF");
       lightStatus = "off";
   digitalWrite(relayPin, LOW);
-  digitalWrite(ledPin, LOW); // turn LED OFF
-  //delay(8000);
+  //digitalWrite(ledPin, LOW); // turn LED OFF
+  delay(3000);
  // Serial.println();
     
-  //Serial.println(ldr);
+ // Serial.println(ldr);
   
       }
       //delay(1000);
@@ -238,8 +247,8 @@ String Createjson(int x){
   SmokeSensorVal = analogRead(smokeSensorPin);
   /*Serial.print("SMOKE VALUE = ");
   Serial.println(SmokeSensorVal);*/
-  if(SmokeSensorVal>100){
-    tone(buzzerPin,1000,1000);
+  if(SmokeSensorVal>600){
+    tone(buzzerPin,1000,3000);
     /*Serial.print("SMOKE DETECTED");
     Serial.print("\n");*/
     smokeStatus ="detected";
@@ -273,7 +282,7 @@ String Createjson(int x){
   Serial.print((char)176);//shows degrees character
   Serial.println("F");*/
 
-  if(c<23){
+  if(c<30){
     analogWrite(fanPin,map(0,0,9,0,255));
     fanStatus  = "off";
   delay(3000);
@@ -292,9 +301,10 @@ String Createjson(int x){
     //delay(10000);
     if (pirState == LOW) {
       // we have just turned on
-      //tone(buzzerPin,1000,10000);
+      digitalWrite(ledPin, HIGH);
       //Serial.println("Motion detected!");
        motionStatus = "detected";
+       //Serial.println("detected");
       // We only want to print on the output change, not state
       
       pirState = HIGH;
@@ -309,14 +319,16 @@ String Createjson(int x){
       //Serial.println("Motion ended!");
       // We only want to print on the output change, not state
        motionStatus = "ended";
+       //Serial.println("ended");
       pirState = LOW;
     }else{
       motionStatus = "none detected";
+      //Serial.println("none detected");
       }
   }
 
   //door lock
-  if(SmokeSensorVal>100){
+  /*if(SmokeSensorVal>100){
   digitalWrite(solenoid,HIGH);
   doorStatus = "open";
   //delay(2000);
@@ -324,7 +336,8 @@ String Createjson(int x){
   digitalWrite(solenoid,LOW);
   doorStatus = "closed";
   //delay(2000);
-  }
+  }*/
+  
   if(c==-127){
       temperature = String(k) ;}
   else{
